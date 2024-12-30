@@ -122,4 +122,25 @@ class PostController extends Controller
             ], 404);
         }
     }
+
+    public function destroy($id)
+    {
+        try {
+            // find post by ID, this will throw ModelNotFoundException if not found
+            $post = Post::findOrFail($id);
+
+            // delete image
+            Storage::delete('public/images/' . basename($post->image));
+
+            // delete post
+            $post->delete();
+
+            return new PostResource(true, 'Data post berhasil dihapus', null);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post not found'
+            ], 404);
+        }
+    }
 }
