@@ -52,4 +52,19 @@ class PostController extends Controller
 
         return new PostResource(true, 'Data berhasil ditambahkan', $post);
     }
+
+    public function show($id)
+    {
+        try {
+            // find post by ID, this will throw ModelNotFoundException if not found
+            $post = Post::findOrFail($id);
+
+            return new PostResource(true, 'Data detail berhasil diambil', $post);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Post not found'
+            ], 404);
+        }
+    }
 }
