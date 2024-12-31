@@ -67,45 +67,70 @@ class AuthController extends Controller
     // login
     public function login(Request $request)
     {
-        // Validate data
-        $validator = Validator::make($request->all(), [
-            'email'     => 'required|email',
-            'password'  => 'required'
-        ]);
-
-        // Check validator
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()
-            ], 401);
-        }
-
         try {
+            // Validasi input
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'password' => 'required|string'
+            ], [
+                'email.required' => 'Email is required',
+                'email.email' => 'Please enter a valid email address',
+                'password.required' => 'Password is required'
+            ]);
 
-            if (!Auth::attempt($request->only('email', 'password'))) {
-                throw ValidationException::withMessages([
-                    'email' => ['The provided credentials are incorrect.'],
-                ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors()
+                ], 422);
             }
 
-            $user = User::where('email', $request->email)->firstOrFail();
+            // Check if email exists
+            $user = User::where('email', $request->email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Email is not registered.'
+                ], 401);
+            }
+
+            // Check password
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password is incorrect.'
+                ], 401);
+            }
+
+            // Generate token
             $token = $user->createToken('auth_token')->plainTextToken;
 
-
-            // Return response langsung tanpa menggunakan Resource
+            // Return response using Resource
             return new AuthResource([
-                'status' => true,
+                'success' => true,
                 'message' => 'Login successful',
                 'user' => $user,
                 'token' => $token,
-                'token_type' => 'Bearer',
+                'token_type' => 'Bearer'
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error during login',
+                'success' => false,
+                'message' => 'Login failed',
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->tokens()->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Logout successful'
+        ]);
     }
 }
