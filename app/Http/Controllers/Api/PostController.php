@@ -14,9 +14,19 @@ use Illuminate\Support\Facades\Validator;
 //import facade Storage
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Gate;
 
-class PostController extends Controller
+class PostController extends Controller implements HasMiddleware
 {
+    public static function middleware()
+    {
+        return [
+            new Middleware('auth:sanctum', except: ['index', 'show'])
+        ];
+    }
+
     public function index()
     {
         // get all data
@@ -46,12 +56,11 @@ class PostController extends Controller
         $image->storeAs('public/images', $image->hashName());
 
         // create data
-        $post = Post::create([
+        $post = $request->user()->posts()->create([
             'image'     => $image->hashName(),
             'title'     => $request->title,
             'content'   => $request->content,
         ]);
-
         return new PostResource(true, 'Data berhasil ditambahkan', $post);
     }
 
@@ -90,6 +99,7 @@ class PostController extends Controller
         try {
             // find post by ID, this will throw ModelNotFoundException if not found
             $post = Post::findOrFail($id);
+            Gate::authorize('update', $post);
 
             // check if image is uploaded
             if ($request->hasFile('image')) {
@@ -126,8 +136,10 @@ class PostController extends Controller
     public function destroy($id)
     {
         try {
+
             // find post by ID, this will throw ModelNotFoundException if not found
             $post = Post::findOrFail($id);
+            Gate::authorize('delete', $post);
 
             // delete image
             Storage::delete('public/images/' . basename($post->image));
