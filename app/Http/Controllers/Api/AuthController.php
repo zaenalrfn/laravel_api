@@ -91,7 +91,9 @@ class AuthController extends Controller
             if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Email is not registered.'
+                    'message' => [
+                        'email' => ['these credentials do not match our records.']
+                    ]
                 ], 401);
             }
 
